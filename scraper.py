@@ -18,9 +18,9 @@ class Scraper:
         driver = webdriver.Chrome("/usr/bin/chromedriver",chrome_options=chrome_options)
         #driver = webdriver.Firefox()
         cases = [0,0,0,0,0,0]
-        for site in data[min:max]:
+        for index,site in enumerate(data[min:max]):
             site = 'https://'+site
-            print(site)
+            print(index,": ",site)
             cases = [0,0,0,0,0,0]
             driver.get(site)
             print('-------------Title-------------------')

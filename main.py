@@ -1,5 +1,6 @@
 import json
 from scraper import *
+
 f = open('sites.json')
 data = json.load(f)
 f.close()
