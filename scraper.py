@@ -9,8 +9,11 @@ from db import *
 class Scraper:
     @staticmethod
     def run(data,min,max,ID_MIN_LENGTH):
-        Site.clear()
-        Request.clear()
+        answer = input("You want to clear database? y¦N: ")
+        if(answer =="y"):
+            Site.clear()
+            Request.clear()
+
         chrome_options = Options()
         chrome_options.add_experimental_option("detach", True)
         chrome_options.add_argument('ignore-certificate-errors')
@@ -25,20 +28,6 @@ class Scraper:
             driver.get(site)
             print('-------------Title-------------------')
             print(driver.title)
-            print('-------------Cookies--------------------')
-            cookies = driver.get_cookies()
-            
-            for request in driver.requests:
-                if request.response:
-                    if request.response.status_code == 302:
-                        cookie = request.response.headers['Set-Cookie']                
-                        if(cookie is not None):
-                            cookie_value = cookie.split(";",1)[0].split("=",1)[1]
-                            cookie_name = cookie.split(";",1)[0].split("=",1)[0]
-                            cookies.append({"name":cookie_name,"value":cookie_value})
-
-            for cookie in cookies:
-                print(cookie)
             
             print('-------------Requests--------------------')
             
@@ -49,17 +38,38 @@ class Scraper:
                     method = request.method
                     typ = request.response.headers["Content-Type"]
                     url = request.url
-                    print(request.response.status_code)
-                    print(request.url)
-                    print(request.response)
+                    #print(request.response.status_code)
+                    #print(request.url)
+                    #print(request.response)
                     
                     if status == 302:
                         
                         print('-------------------------------------------------------------')
                         print('------------------------- Start Cookie syncing --------------------')
                         print('-------------------------------------------------------------')
-                        
+                        #print("headers: ",request.headers)
                         print("Location: ",location)
+                        print("Request cookies: ",request.headers['cookie'])
+                        print("Response cookies: ",request.response.headers['Set-Cookie'])
+                        
+
+                        cookies = []
+                        setcookieheader = request.response.headers['Set-Cookie']
+                        cookiesheader = request.headers['cookie']
+                        
+                        if(cookiesheader is not None):
+                            for cookie in cookiesheader.split(";"):
+                                value = cookie.split("=")[1]
+                                name = cookie.split("=")[0]
+                                cookies.append({"name":name,"value":value})
+
+                        if(setcookieheader is not None):
+                            cookie_value = setcookieheader.split(";",1)[0].split("=",1)[1]
+                            cookie_name = setcookieheader.split(";",1)[0].split("=",1)[0]
+                            cookies.append({"name":cookie_name,"value":cookie_value})
+                        
+                        print("COOKIES: ",cookies)
+                        
                         for cookie in cookies:
                             cookie_value = cookie['value']
                             cookie_name = cookie["name"]
