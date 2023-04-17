@@ -4,13 +4,22 @@ from urllib.parse import urlparse
 from urllib.parse import parse_qs
 import re
 import base64
+import json
 from db import *
+from cookieManager import *
 
 class Scraper:
     @staticmethod
-    def run(data,min,max,ID_MIN_LENGTH):
-        answer = input("You want to clear database? y¦N: ")
-        if(answer =="y"):
+    def run(data_url,min,max,ID_MIN_LENGTH):
+        data = ['aljazeera.net']
+        data = ['localhost:9000']
+
+        if(input("You want to load data from url ? [y¦N]: ")=="y"):
+            f = open(data_url)
+            data = json.load(f)
+            f.close()
+
+        if(input("You want to clear database? [y¦N]: ") =="y"):
             Site.clear()
             Request.clear()
 
@@ -22,14 +31,14 @@ class Scraper:
         #driver = webdriver.Firefox()
         cases = [0,0,0,0,0,0]
         for index,site in enumerate(data[min:max]):
-            site = 'https://'+site
+            site = 'http://'+site
             print(index,": ",site)
             cases = [0,0,0,0,0,0]
             driver.get(site)
             print('-------------Title-------------------')
             print(driver.title)
             
-            print('-------------Requests--------------------')
+            print('-------------Requests----------------')
             
             for request in driver.requests:
                 if request.response:
@@ -38,42 +47,22 @@ class Scraper:
                     method = request.method
                     typ = request.response.headers["Content-Type"]
                     url = request.url
-                    #print(request.response.status_code)
-                    #print(request.url)
-                    #print(request.response)
                     
                     if status == 302:
                         
                         print('-------------------------------------------------------------')
-                        print('------------------------- Start Cookie syncing --------------------')
+                        print('---------------------- Start Cookie syncing -----------------')
                         print('-------------------------------------------------------------')
-                        #print("headers: ",request.headers)
-                        print("Location: ",location)
-                        print("Request cookies: ",request.headers['cookie'])
-                        print("Response cookies: ",request.response.headers['Set-Cookie'])
-                        
+                        print("HEADERS: ",request.headers)
+                        print("RESPONSE: ",request.response.headers)
+                        print("LOCATION: ",location)
 
-                        cookies = []
-                        setcookieheader = request.response.headers['Set-Cookie']
-                        cookiesheader = request.headers['cookie']
-                        
-                        if(cookiesheader is not None):
-                            for cookie in cookiesheader.split(";"):
-                                value = cookie.split("=")[1]
-                                name = cookie.split("=")[0]
-                                cookies.append({"name":name,"value":value})
-
-                        if(setcookieheader is not None):
-                            cookie_value = setcookieheader.split(";",1)[0].split("=",1)[1]
-                            cookie_name = setcookieheader.split(";",1)[0].split("=",1)[0]
-                            cookies.append({"name":cookie_name,"value":cookie_value})
-                        
+                        cookies  = CookieManager.getCookies(request)
                         print("COOKIES: ",cookies)
                         
                         for cookie in cookies:
                             cookie_value = cookie['value']
                             cookie_name = cookie["name"]
-                            print("Cookie ",cookie_name," :",cookie_value)
                             params = parse_qs(urlparse(location).query)
                             for param in params:
                                 param_value = parse_qs(urlparse(location).query)[param][0]

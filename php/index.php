@@ -1,7 +1,4 @@
-<?php
-setcookie("id", "AZEZAZEZE", time() + (86400 * 30), "/");
-setcookie("sid", "45678", time() + (86400 * 30), "/");
-?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,6 +8,6 @@ setcookie("sid", "45678", time() + (86400 * 30), "/");
     <title>Document</title>
 </head>
 <body>
-    <!--img src="http://itqanesoft.com/test/index.php" alt=""!-->
+    <img src="http://itqanesoft.com/test/index.php" alt="">
 </body>
 </html>
