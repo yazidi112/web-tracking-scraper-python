@@ -40,3 +40,19 @@ class Request:
         mycursor.execute(sql)
         mydb.commit()
         print(mycursor.rowcount, "Table Requests emptied.")
+
+class View:
+    @staticmethod
+    def request():
+        sql = "SELECT * FROM top_requests"
+        mycursor.execute(sql)
+        result = mycursor.fetchall()
+        return result
+    
+    @staticmethod
+    def content_type():
+        sql = "SELECT * FROM content_type"
+        mycursor.execute(sql)
+        result = mycursor.fetchall()
+        return result
+        

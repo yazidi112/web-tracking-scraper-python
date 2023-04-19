@@ -1,25 +1,25 @@
 from seleniumwire import webdriver
 from selenium.webdriver.chrome.options import Options
-from urllib.parse import urlparse
-from urllib.parse import parse_qs
 import re
 import base64
 import json
-from db import *
+from db import * 
 from cookieManager import *
+from paramsManager import *
+from result import *
 
 class Scraper:
     @staticmethod
     def run(data_url,min,max,ID_MIN_LENGTH):
         data = ['aljazeera.net']
-        data = ['localhost:9000']
+        #data = ['localhost:9000']
 
-        if(input("You want to load data from url ? [y¦N]: ")=="y"):
+        if(input("You want to load data from url ? [Y¦n]: ") != "n"):
             f = open(data_url)
             data = json.load(f)
             f.close()
 
-        if(input("You want to clear database? [y¦N]: ") =="y"):
+        if(input("You want to clear database? [Y¦n]: ") != "n"):
             Site.clear()
             Request.clear()
 
@@ -29,16 +29,16 @@ class Scraper:
         chrome_options.add_argument('--headless')
         driver = webdriver.Chrome("/usr/bin/chromedriver",chrome_options=chrome_options)
         #driver = webdriver.Firefox()
-        cases = [0,0,0,0,0,0]
+        
         for index,site in enumerate(data[min:max]):
             site = 'http://'+site
-            print(index,": ",site)
-            cases = [0,0,0,0,0,0]
+            print("________________________________________________________")
+            print(index+1,": ",site)
             driver.get(site)
             print('-------------Title-------------------')
             print(driver.title)
             
-            print('-------------Requests----------------')
+            print('-------------Requests: 302 status code----------------')
             
             for request in driver.requests:
                 if request.response:
@@ -50,83 +50,43 @@ class Scraper:
                     
                     if status == 302:
                         
-                        print('-------------------------------------------------------------')
-                        print('---------------------- Start Cookie syncing -----------------')
-                        print('-------------------------------------------------------------')
-                        print("HEADERS: ",request.headers)
-                        print("RESPONSE: ",request.response.headers)
-                        print("LOCATION: ",location)
-
                         cookies  = CookieManager.getCookies(request)
+                        params = ParamsManager.getParams(location)
+
+                        #print("REQUEST: ",request.headers)
+                        #print("RESPONSE: ",request.response.headers)
+                        print("LOCATION: ",location)                        
                         print("COOKIES: ",cookies)
                         
                         for cookie in cookies:
-                            cookie_value = cookie['value']
-                            cookie_name = cookie["name"]
-                            params = parse_qs(urlparse(location).query)
-                            for param in params:
-                                param_value = parse_qs(urlparse(location).query)[param][0]
-                                
+                            for param_name,param_value in params:
+                                sharing_technique = "NONE"
                                 #case 4:
-                                
-                                if(param_value in cookie_value and re.search("^GA.*\..*\.*\..*", cookie_value) and re.search(".*\..*",param_value) and len(param_value)>=ID_MIN_LENGTH and len(cookie_value)>=ID_MIN_LENGTH):
-                                    print("#case 4: GA sharing")
-                                    print("In Request url:",location)
-                                    print("Cookie name ",cookie_name," with value: ",cookie_value)
-                                    print(" is found matched with param ",param, "Which its value", param_value)
-                                    cases[3]=cases[3]+1
-                                    sharing_technique = "GAS"
-                                    Request.insert(site,url,typ,method,status,location,sharing_technique)
+                                if(param_value in cookie['value'] and re.search("^GA.*\..*\.*\..*", cookie['value']) and re.search(".*\..*",param_value) and len(param_value)>=ID_MIN_LENGTH and len(cookie['value'])>=ID_MIN_LENGTH):
+                                    sharing_technique = "GAS"                                    
 
                                 #case 1:
-                                elif(param_value == cookie_value and len(param_value)>=ID_MIN_LENGTH and len(cookie_value)>=ID_MIN_LENGTH):
-                                    print("#case 1: direct sharing")
-                                    print("In Request url:",location)
-                                    print("Cookie name ",cookie_name," with value: ",cookie_value)
-                                    print(" is found matched with param ",param, "Which its value", param_value)
-                                    cases[0]=cases[0]+1
+                                elif(param_value == cookie['value'] and len(param_value)>=ID_MIN_LENGTH and len(cookie['value'])>=ID_MIN_LENGTH):
                                     sharing_technique = "DS"
-                                    Request.insert(site,url,typ,method,status,location,sharing_technique)
-
+                                    
                                 #case 2:
-
-                                elif(cookie_value in param_value and len(param_value)>=ID_MIN_LENGTH and len(cookie_value)>=ID_MIN_LENGTH):
-                                    print("#case 2: Id as part of param")
-                                    print("In Request url:",location)
-                                    print("Cookie name ",cookie_name," with value: ",cookie_value)
-                                    print(" is found matched with param ",param, "Which its value", param_value)
-                                    cases[1]=cases[1]+1
+                                elif(cookie['value'] in param_value and len(param_value)>=ID_MIN_LENGTH and len(cookie['value'])>=ID_MIN_LENGTH):
                                     sharing_technique = "PP"
-                                    Request.insert(site,url,typ,method,status,location,sharing_technique)
-
+                                    
                                 #case 3:
-
-                                elif(param_value in cookie_value and len(param_value)>=ID_MIN_LENGTH and len(cookie_value)>=ID_MIN_LENGTH):
-                                    print("#case 3: Id as part of Cookie")
-                                    print("In Request url:",location)
-                                    print("Cookie name ",cookie_name," with value: ",cookie_value)
-                                    print(" is found matched with param ",param, "Which its value", param_value)
-                                    cases[2]=cases[2]+1
+                                elif(param_value in cookie['value'] and len(param_value)>=ID_MIN_LENGTH and len(cookie['value'])>=ID_MIN_LENGTH):
                                     sharing_technique = "PC"
-                                    Request.insert(site,url,typ,method,status,location,sharing_technique)
-
+                                    
                                 #case 5:
-
-                                elif(param_value == base64.b64encode(cookie_value.encode("utf-8")).decode("utf-8")):
-                                    print("#case 5: base64 sharing")
-                                    print("In Request url:",location)
-                                    print("Cookie name ",cookie_name," with value: ",cookie_value)
-                                    print(" is found matched with param ",param, "Which its value", param_value)
-                                    cases[4]=cases[4]+1
+                                elif(param_value == base64.b64encode(cookie['value'].encode("utf-8")).decode("utf-8")):
                                     sharing_technique = "B64S"
+                                
+                                if(sharing_technique!="NONE"):
+                                    print("Sharing technique: ",sharing_technique)
+                                    print("In Request url:",location)
+                                    print("Cookie name ",cookie["name"]," with value: ",cookie['value'])
+                                    print(" is found matched with param ",param_name, "Which its value", param_value)
                                     Request.insert(site,url,typ,method,status,location,sharing_technique)
-
-                        print('-------------------------------------------------------------')
-                        print('------------------------- End Cookie syncing --------------------')
-                        print('-------------------------------------------------------------')
-            print('-------------------------------------------------------------')
-            print('------------------------- Results --------------------')
-            print('-------------------------------------------------------------')
-            print(cases)
-            Site.insert(site,cases[0],cases[1],cases[2],cases[3],cases[4])
-            #driver.quit()
+            
+        Result.show()
+            
